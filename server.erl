@@ -4,6 +4,11 @@
 -export([start/1, stop/1]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
+-record(server_state, {
+    channels,
+    users
+}).
+
 % Start a new server process with the given name
 % Do not change the signature of this function.
 start(ServerAtom) ->
@@ -24,7 +29,11 @@ stop(ServerAtom) ->
 
 % callback functions
 init(_Args) ->
-    {ok, []}.
+    InitialState = #server_state{
+        channels = [],
+        users = []
+    },
+    {ok, InitialState}.
 
 handle_call(_Request, _From, State) ->
     SomeReply = 123,
