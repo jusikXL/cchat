@@ -1,7 +1,7 @@
 -module(server).
 -behaviour(gen_server).
 
--export([start/1, stop/1, join/2, send_msg/4]).
+-export([start/1, stop/1, join/2, leave/2, send_msg/4]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(server_state, {
@@ -19,6 +19,9 @@ stop(ServerAtom) ->
 
 join(ServerAtom, ChannelAtom) ->
     gen_server:call(ServerAtom, {join, ChannelAtom}).
+
+leave(ServerAtom, ChannelAtom) ->
+    gen_server:call(ServerAtom, {leave, ChannelAtom}).
 
 send_msg(ServerAtom, ChannelAtom, Nick, Msg) ->
     gen_server:call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}).
@@ -54,6 +57,18 @@ handle_call({join, ChannelAtom}, {Client, _Reply}, State) ->
             channel:start(ChannelAtom, Client),
             NewState = State#server_state{channels = [ChannelAtom | State#server_state.channels]},
             {reply, ok, NewState}
+    end;
+handle_call({leave, ChannelAtom}, {Client, _Reply}, State) ->
+    case lists:member(ChannelAtom, State#server_state.channels) of
+        true ->
+            case channel:leave(ChannelAtom, Client) of
+                {error, user_not_joined} ->
+                    {reply, {error, user_not_joined}, State};
+                ok ->
+                    {reply, ok, State}
+            end;
+        false ->
+            {reply, {error, user_not_joined}, State}
     end.
 
 handle_cast(stop, State) ->
