@@ -49,16 +49,13 @@ handle_call({join, Client}, _From, State) ->
 handle_call({send_msg, Client, Nick, Msg}, _From, State) ->
     case lists:member(Client, State#channel_state.clients) of
         true ->
-            lists:foreach(
-                fun(C) ->
-                    io:fwrite("~p~n", [{C, message_receive, State#channel_state.name, Nick, Msg}]),
-                    genserver:request(
-                        C,
-                        {message_receive, State#channel_state.name, Nick, Msg}
-                    )
-                end,
-                State#channel_state.clients
-            ),
+            [
+                genserver:request(
+                    C,
+                    {message_receive, State#channel_state.name, Nick, Msg}
+                )
+             || C <- State#channel_state.clients, C =/= Client
+            ],
 
             {reply, ok, State};
         false ->

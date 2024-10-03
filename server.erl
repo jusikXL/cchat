@@ -33,10 +33,8 @@ init(_Args) ->
 handle_call({send_msg, ChannelAtom, Nick, Msg}, {Client, _Reply}, State) ->
     case channel:send_msg(ChannelAtom, Client, Nick, Msg) of
         {error, user_not_joined} ->
-            io:fwrite("~p~n", ["channel reply error"]),
             {reply, {error, user_not_joined}, State};
         ok ->
-            io:fwrite("~p~n", ["channel reply ok"]),
             {reply, ok, State}
     end;
 handle_call({join, ChannelAtom}, {Client, _Reply}, State) ->

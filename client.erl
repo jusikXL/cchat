@@ -46,10 +46,8 @@ handle(St, {message_send, Channel, Msg}) ->
     io:fwrite("~p~n", ["client send"]),
     case server:send_msg(St#client_st.server, list_to_atom(Channel), St#client_st.nick, Msg) of
         ok ->
-            io:fwrite("~p~n", ["reply okay"]),
             {reply, ok, St};
         {error, user_not_joined} ->
-            io:fwrite("~p~n", ["reply error"]),
             {reply, {error, user_not_joined, "User not joined"}, St}
     end;
 % This case is only relevant for the distinction assignment!
@@ -65,7 +63,6 @@ handle(St, whoami) ->
     {reply, St#client_st.nick, St};
 % Incoming message (from channel, to GUI)
 handle(St = #client_st{gui = GUI}, {message_receive, Channel, Nick, Msg}) ->
-    io:fwrite("~p~n", ["client receive"]),
     gen_server:call(GUI, {message_receive, Channel, Nick ++ "> " ++ Msg}),
     {reply, ok, St};
 % Quit client via GUI
