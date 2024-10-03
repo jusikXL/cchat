@@ -21,7 +21,6 @@ join(ServerAtom, ChannelAtom) ->
     gen_server:call(ServerAtom, {join, ChannelAtom}).
 
 send_msg(ServerAtom, ChannelAtom, Nick, Msg) ->
-    io:fwrite("~p~n", ["server interface"]),
     gen_server:call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}).
 
 % callback functions
@@ -31,13 +30,16 @@ init(_Args) ->
     },
     {ok, InitialState}.
 
-handle_call({send_msg, ChannelAtom, Nick, Msg}, Client, State) ->
-    io:fwrite("~p~n", ["server callback"]),
+handle_call({send_msg, ChannelAtom, Nick, Msg}, {Client, _Reply}, State) ->
     case channel:send_msg(ChannelAtom, Client, Nick, Msg) of
-        {error, user_not_joined} -> {reply, {error, user_not_joined}, State};
-        ok -> {reply, ok, State}
+        {error, user_not_joined} ->
+            io:fwrite("~p~n", ["channel reply error"]),
+            {reply, {error, user_not_joined}, State};
+        ok ->
+            io:fwrite("~p~n", ["channel reply ok"]),
+            {reply, ok, State}
     end;
-handle_call({join, ChannelAtom}, Client, State) ->
+handle_call({join, ChannelAtom}, {Client, _Reply}, State) ->
     % TODO: revert if ChannelAtom == ServerAtom
     case lists:member(ChannelAtom, State#server_state.channels) of
         true ->

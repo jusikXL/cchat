@@ -24,7 +24,6 @@ join(ChannelAtom, Client) ->
 %     gen_server:call(ChannelAtom, {leave, Client}).
 
 send_msg(ChannelAtom, Client, Nick, Msg) ->
-    io:fwrite("~p~n", ["channel interface"]),
     gen_server:call(ChannelAtom, {send_msg, Client, Nick, Msg}).
 
 % callback functions
@@ -35,7 +34,7 @@ init([ChannelAtom, Client]) ->
     },
     {ok, InitialState}.
 
-handle_call({join, Client}, _Server, State) ->
+handle_call({join, Client}, _From, State) ->
     case lists:member(Client, State#channel_state.clients) of
         true ->
             % already joined
@@ -47,13 +46,12 @@ handle_call({join, Client}, _Server, State) ->
             },
             {reply, ok, NewState}
     end;
-handle_call({send_msg, Client, Nick, Msg}, _Server, State) ->
-    io:fwrite("~p~n", ["channel callback"]),
+handle_call({send_msg, Client, Nick, Msg}, _From, State) ->
     case lists:member(Client, State#channel_state.clients) of
         true ->
-            io:fwrite("~p~n", [{message_receive, State#channel_state.name, Nick, Msg}]),
             lists:foreach(
                 fun(C) ->
+                    io:fwrite("~p~n", [{C, message_receive, State#channel_state.name, Nick, Msg}]),
                     genserver:request(
                         C,
                         {message_receive, State#channel_state.name, Nick, Msg}
@@ -61,14 +59,6 @@ handle_call({send_msg, Client, Nick, Msg}, _Server, State) ->
                 end,
                 State#channel_state.clients
             ),
-
-            % [
-            %     genserver:request(
-            %         C,
-            %         {message_receive, "#test", Nick, Msg}
-            %     )
-            %  || C <- State#channel_state.clients
-            % ],
 
             {reply, ok, State};
         false ->

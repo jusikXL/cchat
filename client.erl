@@ -39,14 +39,18 @@ handle(St, {join, Channel}) ->
             {reply, {error, user_already_joined, "User already joined"}, St}
     end;
 % Leave channel
-handle(St, {leave, Channel}) ->
+handle(St, {leave, _Channel}) ->
     {reply, {error, not_implemented, "leave not implemented"}, St};
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
     io:fwrite("~p~n", ["client send"]),
     case server:send_msg(St#client_st.server, list_to_atom(Channel), St#client_st.nick, Msg) of
-        ok -> {reply, ok, St};
-        {error, user_not_joined} -> {reply, {error, user_not_joined, "User not joined"}, St}
+        ok ->
+            io:fwrite("~p~n", ["reply okay"]),
+            {reply, ok, St};
+        {error, user_not_joined} ->
+            io:fwrite("~p~n", ["reply error"]),
+            {reply, {error, user_not_joined, "User not joined"}, St}
     end;
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)
