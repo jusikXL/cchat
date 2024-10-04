@@ -36,7 +36,8 @@ handle(St, {join, Channel}) ->
         ok ->
             {reply, ok, St};
         {error, user_already_joined} ->
-            {reply, {error, user_already_joined, "User already joined"}, St}
+            {reply, {error, user_already_joined, "User already joined"}, St};
+        {error, server_not_reached} -> {reply, {error, server_not_reached, "Server not reached"}, St}
     end;
 % Leave channel
 handle(St, {leave, Channel}) ->

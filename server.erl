@@ -18,7 +18,11 @@ stop(ServerAtom) ->
     gen_server:cast(ServerAtom, stop).
 
 join(ServerAtom, ChannelAtom) ->
-    gen_server:call(ServerAtom, {join, ChannelAtom}).
+    try gen_server:call(ServerAtom, {join, ChannelAtom}, 1000) of
+        Result -> Result
+    catch 
+        exit:{timeout, _} -> {error, server_not_reached}
+    end.
 
 leave(ServerAtom, ChannelAtom) ->
     gen_server:call(ServerAtom, {leave, ChannelAtom}).
