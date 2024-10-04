@@ -53,5 +53,5 @@ handle_call({stop}, _From, State) ->
     {stop, normal, State}.
 
 % unused
-handle_cast(stop, State) ->
-    {stop, normal, State}.
+handle_cast(_Request, State) ->
+    {noreply, State}.
