@@ -42,15 +42,17 @@ handle(St, {join, Channel}) ->
     end;
 % Leave channel
 handle(St, {leave, Channel}) ->
-    case server:leave(St#client_st.server, list_to_atom(Channel)) of
+    case channel:leave(list_to_atom(Channel)) of
         ok ->
             {reply, ok, St};
         {error, user_not_joined} ->
-            {reply, {error, user_not_joined, "User not joined"}, St}
+            {reply, {error, user_not_joined, "User not joined"}, St};
+        {error, server_not_reached} ->
+            {reply, {error, server_not_reached, "Server not reached"}, St}
     end;
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
-    case channel:send_msg(list_to_atom(Channel), self(), St#client_st.nick, Msg) of
+    case channel:send_msg(list_to_atom(Channel), St#client_st.nick, Msg) of
         ok ->
             {reply, ok, St};
         {error, user_not_joined} ->
