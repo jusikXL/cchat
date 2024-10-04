@@ -1,7 +1,7 @@
 -module(channel).
 -behaviour(gen_server).
 
--export([start/2, stop/1, join/2, leave/2, send_msg/4]).
+-export([start/2, stop/1, join/2, leave/1, send_msg/3]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(channel_state, {
@@ -15,21 +15,16 @@ start(ChannelAtom, Client) ->
     gen_server:start({local, ChannelAtom}, channel, [ChannelAtom, Client], []).
 
 stop(ChannelAtom) ->
-    gen_server:cast(ChannelAtom, stop).
+    utils:gen_server_call(ChannelAtom, {stop}).
 
 join(ChannelAtom, Client) ->
-    gen_server:call(ChannelAtom, {join, Client}).
+    utils:gen_server_call(ChannelAtom, {join, Client}).
 
-leave(ChannelAtom, Client) ->
-    gen_server:call(ChannelAtom, {leave, Client}).
+leave(ChannelAtom) ->
+    utils:gen_server_call(ChannelAtom, {leave}).
 
-send_msg(ChannelAtom, Client, Nick, Msg) ->
-    try gen_server:call(ChannelAtom, {send_msg, Client, Nick, Msg}) of
-        Result -> Result
-    catch 
-        exit:_ -> {error, server_not_reached};
-        noproc -> {error, server_not_reached}
-    end.
+send_msg(ChannelAtom, Nick, Msg) ->
+    utils:gen_server_call(ChannelAtom, {send_msg, Nick, Msg}).
 
 % callback functions
 init([ChannelAtom, Client]) ->
@@ -53,7 +48,7 @@ handle_call({join, Client}, _From, State) ->
             {reply, ok, NewState}
     end;
 % send message
-handle_call({send_msg, Client, Nick, Msg}, _From, State) ->
+handle_call({send_msg, Nick, Msg}, {Client, _Reply}, State) ->
     case lists:member(Client, State#channel_state.clients) of
         true ->
             [
@@ -69,7 +64,7 @@ handle_call({send_msg, Client, Nick, Msg}, _From, State) ->
             {reply, {error, user_not_joined}, State}
     end;
 % leave
-handle_call({leave, Client}, _From, State) ->
+handle_call({leave}, {Client, _Reply}, State) ->
     case lists:member(Client, State#channel_state.clients) of
         true ->
             NewState = State#channel_state{
@@ -78,7 +73,10 @@ handle_call({leave, Client}, _From, State) ->
             {reply, ok, NewState};
         false ->
             {reply, {error, user_not_joined}, State}
-    end.
+    end;
+handle_call({stop}, _From, State) ->
+    {stop, normal, State}.
 
+% unused
 handle_cast(stop, State) ->
     {stop, normal, State}.

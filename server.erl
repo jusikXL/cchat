@@ -1,7 +1,7 @@
 -module(server).
 -behaviour(gen_server).
 
--export([start/1, stop/1, join/2, leave/2, send_msg/4]).
+-export([start/1, stop/1, join/2]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(server_state, {
@@ -15,25 +15,10 @@ start(ServerAtom) ->
     Pid.
 
 stop(ServerAtom) ->
-    gen_server:cast(ServerAtom, stop).
+    utils:gen_server_call(ServerAtom, {stop}).
 
 join(ServerAtom, ChannelAtom) ->
-    try gen_server:call(ServerAtom, {join, ChannelAtom}, 1000) of
-        Result -> Result
-    catch 
-        exit:_ -> {error, server_not_reached}
-    end.
-
-leave(ServerAtom, ChannelAtom) ->
-    gen_server:call(ServerAtom, {leave, ChannelAtom}).
-
-send_msg(ServerAtom, ChannelAtom, Nick, Msg) ->
-    try gen_server:call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}) of
-        Result -> Result
-    catch 
-        exit:_ -> {error, server_not_reached};
-        noproc -> {error, server_not_reached}
-    end.
+    utils:gen_server_call(ServerAtom, {join, ChannelAtom}).
 
 % callback functions
 init(_Args) ->
@@ -42,15 +27,6 @@ init(_Args) ->
     },
     {ok, InitialState}.
 
-handle_call({send_msg, ChannelAtom, Nick, Msg}, {Client, _Reply}, State) ->
-    case channel:send_msg(ChannelAtom, Client, Nick, Msg) of
-        {error, user_not_joined} ->
-            {reply, {error, user_not_joined}, State};
-        {error, server_not_reached} ->
-            {reply, {error, server_not_reached}, State};
-        ok ->
-            {reply, ok, State}
-    end;
 handle_call({join, ChannelAtom}, {Client, _Reply}, State) ->
     % TODO: revert if ChannelAtom == ServerAtom
     case lists:member(ChannelAtom, State#server_state.channels) of
@@ -69,18 +45,13 @@ handle_call({join, ChannelAtom}, {Client, _Reply}, State) ->
             NewState = State#server_state{channels = [ChannelAtom | State#server_state.channels]},
             {reply, ok, NewState}
     end;
-handle_call({leave, ChannelAtom}, {Client, _Reply}, State) ->
-    case lists:member(ChannelAtom, State#server_state.channels) of
-        true ->
-            case channel:leave(ChannelAtom, Client) of
-                {error, user_not_joined} ->
-                    {reply, {error, user_not_joined}, State};
-                ok ->
-                    {reply, ok, State}
-            end;
-        false ->
-            {reply, {error, user_not_joined}, State}
-    end.
+handle_call({stop}, _From, State) ->
+    [
+        channel:stop(C)
+     || C <- State#server_state.channels
+    ],
+    {stop, normal, State}.
 
+% unused
 handle_cast(stop, State) ->
     {stop, normal, State}.
