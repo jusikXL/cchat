@@ -15,21 +15,16 @@ start(ChannelAtom, Client) ->
     gen_server:start({local, ChannelAtom}, channel, [ChannelAtom, Client], []).
 
 stop(ChannelAtom) ->
-    gen_server:cast(ChannelAtom, stop).
+    utils:gen_server_call(ChannelAtom, {stop}).
 
 join(ChannelAtom, Client) ->
-    gen_server:call(ChannelAtom, {join, Client}).
+    utils:gen_server_call(ChannelAtom, {join, Client}).
 
 leave(ChannelAtom, Client) ->
-    gen_server:call(ChannelAtom, {leave, Client}).
+    utils:gen_server_call(ChannelAtom, {leave, Client}).
 
 send_msg(ChannelAtom, Client, Nick, Msg) ->
-    try gen_server:call(ChannelAtom, {send_msg, Client, Nick, Msg}) of
-        Result -> Result
-    catch 
-        exit:_ -> {error, server_not_reached};
-        noproc -> {error, server_not_reached}
-    end.
+    utils:gen_server_call(ChannelAtom, {send_msg, Client, Nick, Msg}).
 
 % callback functions
 init([ChannelAtom, Client]) ->
@@ -78,7 +73,10 @@ handle_call({leave, Client}, _From, State) ->
             {reply, ok, NewState};
         false ->
             {reply, {error, user_not_joined}, State}
-    end.
+    end;
+handle_call({stop}, _From, State) ->
+    {stop, normal, State}.
 
+% unused
 handle_cast(stop, State) ->
     {stop, normal, State}.

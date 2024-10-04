@@ -37,7 +37,8 @@ handle(St, {join, Channel}) ->
             {reply, ok, St};
         {error, user_already_joined} ->
             {reply, {error, user_already_joined, "User already joined"}, St};
-        {error, server_not_reached} -> {reply, {error, server_not_reached, "Server not reached"}, St}
+        {error, server_not_reached} ->
+            {reply, {error, server_not_reached, "Server not reached"}, St}
     end;
 % Leave channel
 handle(St, {leave, Channel}) ->
@@ -49,12 +50,13 @@ handle(St, {leave, Channel}) ->
     end;
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
-    case server:send_msg(St#client_st.server, list_to_atom(Channel), St#client_st.nick, Msg) of
+    case channel:send_msg(list_to_atom(Channel), self(), St#client_st.nick, Msg) of
         ok ->
             {reply, ok, St};
         {error, user_not_joined} ->
             {reply, {error, user_not_joined, "User not joined"}, St};
-        {error, server_not_reached} -> {reply, {error, server_not_reached, "Server not reached"}, St}
+        {error, server_not_reached} ->
+            {reply, {error, server_not_reached, "Server not reached"}, St}
     end;
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)

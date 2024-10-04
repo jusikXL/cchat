@@ -1,23 +1,12 @@
 -module(server).
 -behaviour(gen_server).
 
--export([start/1, stop/1, join/2, leave/2, send_msg/4]).
+-export([start/1, stop/1, join/2, leave/2]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(server_state, {
     channels
 }).
-
-gen_server_call(ServerAtom, Msg) ->
-    gen_server_call(ServerAtom, Msg, 3000).
-
-gen_server_call(ServerAtom, Msg, Timeout) ->
-    try gen_server:call(ServerAtom, Msg, Timeout) of
-        Result -> Result
-    catch
-        exit:_ -> {error, server_not_reached};
-        error:noproc -> {error, server_not_reached}
-    end.
 
 % interface functions
 start(ServerAtom) ->
@@ -26,16 +15,13 @@ start(ServerAtom) ->
     Pid.
 
 stop(ServerAtom) ->
-    gen_server_call(ServerAtom, {stop}).
+    utils:gen_server_call(ServerAtom, {stop}).
 
 join(ServerAtom, ChannelAtom) ->
-    gen_server_call(ServerAtom, {join, ChannelAtom}).
+    utils:gen_server_call(ServerAtom, {join, ChannelAtom}).
 
 leave(ServerAtom, ChannelAtom) ->
-    gen_server_call(ServerAtom, {leave, ChannelAtom}).
-
-send_msg(ServerAtom, ChannelAtom, Nick, Msg) ->
-    gen_server_call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}).
+    utils:gen_server_call(ServerAtom, {leave, ChannelAtom}).
 
 % callback functions
 init(_Args) ->
@@ -44,15 +30,6 @@ init(_Args) ->
     },
     {ok, InitialState}.
 
-handle_call({send_msg, ChannelAtom, Nick, Msg}, {Client, _Reply}, State) ->
-    case channel:send_msg(ChannelAtom, Client, Nick, Msg) of
-        {error, user_not_joined} ->
-            {reply, {error, user_not_joined}, State};
-        {error, server_not_reached} ->
-            {reply, {error, server_not_reached}, State};
-        ok ->
-            {reply, ok, State}
-    end;
 handle_call({join, ChannelAtom}, {Client, _Reply}, State) ->
     % TODO: revert if ChannelAtom == ServerAtom
     case lists:member(ChannelAtom, State#server_state.channels) of
@@ -84,6 +61,10 @@ handle_call({leave, ChannelAtom}, {Client, _Reply}, State) ->
             {reply, {error, user_not_joined}, State}
     end;
 handle_call({stop}, _From, State) ->
+    [
+        channel:stop(C)
+     || C <- State#server_state.channels
+    ],
     {stop, normal, State}.
 
 % unused
