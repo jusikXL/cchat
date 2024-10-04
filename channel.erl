@@ -51,13 +51,15 @@ handle_call({join, Client}, _From, State) ->
 handle_call({send_msg, Nick, Msg}, {Client, _Reply}, State) ->
     case lists:member(Client, State#channel_state.clients) of
         true ->
-            [
-                genserver:request(
-                    C,
-                    {message_receive, State#channel_state.name, Nick, Msg}
-                )
-             || C <- State#channel_state.clients, C =/= Client
-            ],
+            spawn(fun() ->
+                [
+                    genserver:request(
+                        C,
+                        {message_receive, State#channel_state.name, Nick, Msg}
+                    )
+                 || C <- State#channel_state.clients, C =/= Client
+                ]
+            end),
 
             {reply, ok, State};
         false ->
