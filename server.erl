@@ -8,6 +8,17 @@
     channels
 }).
 
+gen_server_call(ServerAtom, Msg) ->
+    gen_server_call(ServerAtom, Msg, 3000).
+
+gen_server_call(ServerAtom, Msg, Timeout) ->
+    try gen_server:call(ServerAtom, Msg, Timeout) of
+        Result -> Result
+    catch
+        exit:_ -> {error, server_not_reached};
+        error:noproc -> {error, server_not_reached}
+    end.
+
 % interface functions
 start(ServerAtom) ->
     catch (unregister(ServerAtom)),
@@ -15,25 +26,16 @@ start(ServerAtom) ->
     Pid.
 
 stop(ServerAtom) ->
-    gen_server:cast(ServerAtom, stop).
+    gen_server_call(ServerAtom, {stop}).
 
 join(ServerAtom, ChannelAtom) ->
-    try gen_server:call(ServerAtom, {join, ChannelAtom}, 1000) of
-        Result -> Result
-    catch 
-        exit:_ -> {error, server_not_reached}
-    end.
+    gen_server_call(ServerAtom, {join, ChannelAtom}).
 
 leave(ServerAtom, ChannelAtom) ->
-    gen_server:call(ServerAtom, {leave, ChannelAtom}).
+    gen_server_call(ServerAtom, {leave, ChannelAtom}).
 
 send_msg(ServerAtom, ChannelAtom, Nick, Msg) ->
-    try gen_server:call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}) of
-        Result -> Result
-    catch 
-        exit:_ -> {error, server_not_reached};
-        noproc -> {error, server_not_reached}
-    end.
+    gen_server_call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}).
 
 % callback functions
 init(_Args) ->
@@ -80,7 +82,10 @@ handle_call({leave, ChannelAtom}, {Client, _Reply}, State) ->
             end;
         false ->
             {reply, {error, user_not_joined}, State}
-    end.
+    end;
+handle_call({stop}, _From, State) ->
+    {stop, normal, State}.
 
+% unused
 handle_cast(stop, State) ->
     {stop, normal, State}.
