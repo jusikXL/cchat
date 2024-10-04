@@ -53,7 +53,8 @@ handle(St, {message_send, Channel, Msg}) ->
         ok ->
             {reply, ok, St};
         {error, user_not_joined} ->
-            {reply, {error, user_not_joined, "User not joined"}, St}
+            {reply, {error, user_not_joined, "User not joined"}, St};
+        {error, server_not_reached} -> {reply, {error, server_not_reached, "Server not reached"}, St}
     end;
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)

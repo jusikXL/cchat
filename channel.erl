@@ -24,7 +24,12 @@ leave(ChannelAtom, Client) ->
     gen_server:call(ChannelAtom, {leave, Client}).
 
 send_msg(ChannelAtom, Client, Nick, Msg) ->
-    gen_server:call(ChannelAtom, {send_msg, Client, Nick, Msg}).
+    try gen_server:call(ChannelAtom, {send_msg, Client, Nick, Msg}) of
+        Result -> Result
+    catch 
+        exit:_ -> {error, server_not_reached};
+        noproc -> {error, server_not_reached}
+    end.
 
 % callback functions
 init([ChannelAtom, Client]) ->

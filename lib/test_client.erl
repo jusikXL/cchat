@@ -128,6 +128,7 @@ init(Name) ->
 % Call stop function on server. This should stop channels too.
 server_stop() ->
     server:stop(?SERVERATOM),
+    timer:sleep(500),
     assert("stopping server", whereis(?SERVERATOM) =:= undefined).
 
 % Kill server. This should leave channels running.

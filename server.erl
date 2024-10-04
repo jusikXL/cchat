@@ -21,14 +21,19 @@ join(ServerAtom, ChannelAtom) ->
     try gen_server:call(ServerAtom, {join, ChannelAtom}, 1000) of
         Result -> Result
     catch 
-        exit:{timeout, _} -> {error, server_not_reached}
+        exit:_ -> {error, server_not_reached}
     end.
 
 leave(ServerAtom, ChannelAtom) ->
     gen_server:call(ServerAtom, {leave, ChannelAtom}).
 
 send_msg(ServerAtom, ChannelAtom, Nick, Msg) ->
-    gen_server:call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}).
+    try gen_server:call(ServerAtom, {send_msg, ChannelAtom, Nick, Msg}) of
+        Result -> Result
+    catch 
+        exit:_ -> {error, server_not_reached};
+        noproc -> {error, server_not_reached}
+    end.
 
 % callback functions
 init(_Args) ->
@@ -41,6 +46,8 @@ handle_call({send_msg, ChannelAtom, Nick, Msg}, {Client, _Reply}, State) ->
     case channel:send_msg(ChannelAtom, Client, Nick, Msg) of
         {error, user_not_joined} ->
             {reply, {error, user_not_joined}, State};
+        {error, server_not_reached} ->
+            {reply, {error, server_not_reached}, State};
         ok ->
             {reply, ok, State}
     end;
