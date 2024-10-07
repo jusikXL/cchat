@@ -31,7 +31,7 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 
 % Join channel
 handle(St, {join, Channel}) ->
-    % {reply, ok, St} ;
+    % Sends message to the server and forwards the response
     case server:join(St#client_st.server, list_to_atom(Channel)) of
         ok ->
             {reply, ok, St};
@@ -42,6 +42,7 @@ handle(St, {join, Channel}) ->
     end;
 % Leave channel
 handle(St, {leave, Channel}) ->
+    % Sends message to the specified channel and forwards the response
     case channel:leave(list_to_atom(Channel)) of
         ok ->
             {reply, ok, St};
@@ -52,6 +53,7 @@ handle(St, {leave, Channel}) ->
     end;
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
+    % Sends message to the specified channel and forwards the response
     case channel:send_msg(list_to_atom(Channel), St#client_st.nick, Msg) of
         ok ->
             {reply, ok, St};

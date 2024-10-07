@@ -1,3 +1,6 @@
+% An implementation of `gen_server` that represents a cchat server.
+% Responsible for keeping track of channels and forwarding join requests to the correct channel.
+% Delegates rest of the logic to the channel server.
 -module(server).
 -behaviour(gen_server).
 
@@ -8,43 +11,51 @@
     channels
 }).
 
-% interface functions
+%%% INTERFACE
+
+% Starts the server
 start(ServerAtom) ->
     catch (unregister(ServerAtom)),
     {ok, Pid} = gen_server:start({local, ServerAtom}, server, [], []),
     Pid.
 
+% Stops the server
 stop(ServerAtom) ->
     utils:gen_server_call(ServerAtom, {stop}).
 
+% Joins a channel, is called from the client 
 join(ServerAtom, ChannelAtom) ->
     utils:gen_server_call(ServerAtom, {join, ChannelAtom}).
 
-% callback functions
+%%% GEN_SERVER CALLBACKS
+
+% Initializes the server with no active channels
 init(_Args) ->
     InitialState = #server_state{
         channels = []
     },
     {ok, InitialState}.
 
+% Handle join
 handle_call({join, ChannelAtom}, {Client, _Reply}, State) ->
-    % TODO: revert if ChannelAtom == ServerAtom
     case lists:member(ChannelAtom, State#server_state.channels) of
+        % Channel has already been created
         true ->
             case channel:join(ChannelAtom, Client) of
-                % user already joined
                 {error, user_already_joined} ->
                     {reply, {error, user_already_joined}, State};
-                % join
                 ok ->
                     {reply, ok, State}
             end;
+        % Channel does not exist
         false ->
-            % create channel and join
+            % Create channel, the client is automatically added to the channel on creation
             channel:start(ChannelAtom, Client),
+            % Keep track of active channels in the server state
             NewState = State#server_state{channels = [ChannelAtom | State#server_state.channels]},
             {reply, ok, NewState}
     end;
+% Handle stop
 handle_call({stop}, _From, State) ->
     [
         channel:stop(C)
@@ -52,6 +63,6 @@ handle_call({stop}, _From, State) ->
     ],
     {stop, normal, State}.
 
-% unused
+% We do not have any casts to handle
 handle_cast(_Request, State) ->
     {noreply, State}.
